@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📄 AI 이력서 검색 · Resume Search</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --secondary: #0ea5e9;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #fff;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(79,70,229,.25);
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; }
+    header p  { font-size: .9rem; opacity: .85; margin-top: 2px; }
+    .badge {
+      background: rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Upload area */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--primary);
+      background: #f5f3ff;
+    }
+    .drop-zone input[type="file"] { display: none; }
+    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .drop-zone p { color: var(--muted); font-size: .9rem; }
+    .drop-zone .select-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 20px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .drop-zone .select-btn:hover { background: var(--primary-hover); }
+
+    .file-list { margin-top: 12px; max-height: 160px; overflow-y: auto; }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: .82rem;
+    }
+    .file-item .fname { color: var(--text); font-weight: 500; }
+    .file-item .fsize { color: var(--muted); }
+
+    /* Buttons */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: .875rem;
+      font-weight: 600;
+      transition: background .2s, transform .1s;
+    }
+    button:active { transform: scale(.98); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-danger:hover  { background: #dc2626; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #059669; }
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outline:hover { background: #f5f3ff; }
+
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding: 16px 20px;
+      background: linear-gradient(90deg, #f5f3ff 0%, #eff6ff 100%);
+      border-radius: var(--radius);
+      border: 1px solid #ddd6fe;
+    }
+    .stat { text-align: center; }
+    .stat .num { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+    .stat .lbl { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab {
+      padding: 8px 18px;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .875rem;
+      border: 1.5px solid var(--border);
+    }
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Inputs */
+    textarea, input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: .9rem;
+      font-family: inherit;
+      transition: border-color .2s;
+      outline: none;
+    }
+    textarea:focus, input:focus { border-color: var(--primary); }
+    textarea { resize: vertical; min-height: 100px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: start;
+    }
+    .form-row input[type="number"] { width: 80px; }
+
+    /* Results */
+    .result-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: box-shadow .2s;
+    }
+    .result-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 700;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .rank-1 { background: #fef3c7; color: #92400e; }
+    .rank-2 { background: #f1f5f9; color: #475569; }
+    .rank-3 { background: #fef3c7; color: #92400e; opacity: .75; }
+    .rank-n { background: #f1f5f9; color: #64748b; }
+
+    .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .score-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      flex: 1;
+      min-width: 60px;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+    .score-val { font-size: .8rem; font-weight: 700; color: var(--primary); min-width: 40px; text-align: right; }
+
+    .preview {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Resume list */
+    .resume-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .resume-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f8fafc;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .resume-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .resume-table tr:hover td { background: #f8fafc; }
+    .del-btn {
+      padding: 4px 10px;
+      font-size: .75rem;
+      background: #fee2e2;
+      color: var(--danger);
+      border-radius: 6px;
+    }
+    .del-btn:hover { background: var(--danger); color: #fff; }
+
+    /* Progress */
+    .progress-wrap { margin-top: 12px; display: none; }
+    .progress {
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      width: 0%;
+      transition: width .3s;
+    }
+    .progress-label { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: .875rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .3s, transform .3s;
+      z-index: 9999;
+      max-width: 320px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+
+    .empty { text-align: center; padding: 32px; color: var(--muted); }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📄 AI 이력서 검색 시스템</h1>
+    <p>PDF 이력서를 업로드하고 자연어로 원하는 인재를 찾아보세요</p>
+  </div>
+  <span class="badge">Vector DB Powered</span>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat">
+      <div class="num" id="statTotal">-</div>
+      <div class="lbl">저장된 이력서</div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <h2>📤 이력서 업로드 <span style="font-size:.8rem;color:var(--muted);font-weight:400">(PDF, 최대 100개)</span></h2>
+    <label class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" multiple accept=".pdf" />
+      <div class="icon">☁️</div>
+      <p>PDF 파일을 드래그하거나 클릭해서 선택하세요</p>
+      <span class="select-btn">파일 선택</span>
+    </label>
+    <div class="file-list" id="fileList"></div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">업로드 중…</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-primary" id="uploadBtn" onclick="uploadFiles()" disabled>
+        ⬆️ 업로드 시작
+      </button>
+      <button class="btn-danger btn-outline" onclick="deleteAll()" style="margin-left:auto">
+        🗑️ 전체 삭제
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Rank Tabs -->
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('search', this)">🔍 자연어 검색</button>
+      <button class="tab" onclick="switchTab('rank', this)">🏆 채용공고 매칭</button>
+      <button class="tab" onclick="switchTab('list', this)">📋 이력서 목록</button>
+    </div>
+
+    <!-- Search Panel -->
+    <div id="panel-search">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">
+        원하는 인재를 자연어로 설명하세요. 예: "파이썬 5년 이상 경험한 백엔드 개발자"
+      </p>
+      <div class="form-row">
+        <textarea id="searchQuery" rows="2" placeholder="예) React와 TypeScript를 잘 다루는 프론트엔드 개발자"></textarea>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:4px">결과 수</label>
+          <input type="number" id="searchTopK" value="10" min="1" max="100" style="width:70px" />
+        </div>
+        <div style="padding-top:18px">
+          <button class="btn-primary" onclick="doSearch()">검색</button>
+        </div>
+      </div>
+      <div id="searchResults" style="margin-top:20px"></div>
+    </div>
+
+    <!-- Rank Panel -->
+    <div id="panel-rank" class="hidden">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">
+        채용공고 내용을 입력하면 이력서를 유사도 순으로 순위 매깁니다.
+      </p>
+      <textarea id="jobDesc" rows="6" placeholder="예) 당사는 3년 이상 경력의 Python 백엔드 개발자를 모집합니다. FastAPI, PostgreSQL, Docker 경험 필요. AWS 클라우드 환경 운영 경험 우대…"></textarea>
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+        <label style="font-size:.85rem">상위 결과 수:</label>
+        <input type="number" id="rankTopK" value="20" min="1" max="100" style="width:70px" />
+        <button class="btn-success" onclick="doRank()">🏆 순위 매기기</button>
+      </div>
+      <div id="rankResults" style="margin-top:20px"></div>
+    </div>
+
+    <!-- List Panel -->
+    <div id="panel-list" class="hidden">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn-outline" onclick="loadResumeList()">🔄 새로고침</button>
+      </div>
+      <div id="resumeList"></div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── Utilities ────────────────────────────────────────────────────────────────
+const BASE = '';
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  setTimeout(() => { el.className = ''; }, 3000);
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(BASE + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'API 오류');
+  }
+  return res.json();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const data = await apiFetch('/api/stats');
+    document.getElementById('statTotal').textContent = data.total_resumes;
+  } catch (_) {}
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['search','rank','list'].forEach(n => {
+    document.getElementById(`panel-${n}`).classList.toggle('hidden', n !== name);
+  });
+  if (name === 'list') loadResumeList();
+}
+
+// ── File Upload ───────────────────────────────────────────────────────────────
+let selectedFiles = [];
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList  = document.getElementById('fileList');
+const uploadBtn = document.getElementById('uploadBtn');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', () => handleFiles([...fileInput.files]));
+
+function handleFiles(files) {
+  const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+  if (!pdfs.length) { toast('PDF 파일만 지원합니다.', 'error'); return; }
+  if (pdfs.length > 100) { toast('최대 100개까지 선택 가능합니다.', 'error'); return; }
+  selectedFiles = pdfs;
+  renderFileList();
+  uploadBtn.disabled = false;
+}
+
+function renderFileList() {
+  fileList.innerHTML = selectedFiles.map(f =>
+    `<div class="file-item">
+      <span class="fname">📄 ${f.name}</span>
+      <span class="fsize">${(f.size/1024).toFixed(1)} KB</span>
+    </div>`
+  ).join('');
+}
+
+async function uploadFiles() {
+  if (!selectedFiles.length) return;
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '<span class="spinner"></span>업로드 중…';
+
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progressFill');
+  const pl = document.getElementById('progressLabel');
+  pw.style.display = 'block';
+
+  const BATCH = 10;
+  let uploaded = 0, errors = 0;
+
+  for (let i = 0; i < selectedFiles.length; i += BATCH) {
+    const batch = selectedFiles.slice(i, i + BATCH);
+    const fd = new FormData();
+    batch.forEach(f => fd.append('files', f));
+    try {
+      const res = await apiFetch('/api/upload', { method: 'POST', body: fd });
+      uploaded += res.uploaded;
+      errors   += res.results.filter(r => r.status === 'error').length;
+    } catch (e) {
+      errors += batch.length;
+    }
+    const pct = Math.round(((i + batch.length) / selectedFiles.length) * 100);
+    pf.style.width = pct + '%';
+    pl.textContent = `${Math.min(i + batch.length, selectedFiles.length)} / ${selectedFiles.length} 처리 중…`;
+  }
+
+  pw.style.display = 'none';
+  uploadBtn.innerHTML = '⬆️ 업로드 시작';
+  uploadBtn.disabled = false;
+  selectedFiles = [];
+  fileList.innerHTML = '';
+
+  toast(`✅ ${uploaded}개 업로드 완료${errors ? ` (${errors}개 실패)` : ''}`, 'success');
+  loadStats();
+}
+
+// ── Delete All ────────────────────────────────────────────────────────────────
+async function deleteAll() {
+  if (!confirm('저장된 이력서를 모두 삭제할까요?')) return;
+  try {
+    await apiFetch('/api/resumes', { method: 'DELETE' });
+    toast('🗑️ 전체 삭제 완료', 'success');
+    loadStats();
+    document.getElementById('resumeList').innerHTML = '';
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+async function doSearch() {
+  const q = document.getElementById('searchQuery').value.trim();
+  if (!q) { toast('검색어를 입력하세요', 'error'); return; }
+  const topK = parseInt(document.getElementById('searchTopK').value) || 10;
+  const el = document.getElementById('searchResults');
+  el.innerHTML = '<p style="color:var(--muted)">검색 중…</p>';
+  try {
+    const data = await apiFetch('/api/search', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ query: q, top_k: topK })
+    });
+    el.innerHTML = data.results.length
+      ? data.results.map(r => resultCard(r)).join('')
+      : '<div class="empty">검색 결과가 없습니다.</div>';
+  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; toast(e.message, 'error'); }
+}
+
+// ── Rank ──────────────────────────────────────────────────────────────────────
+async function doRank() {
+  const jd = document.getElementById('jobDesc').value.trim();
+  if (!jd) { toast('채용공고 내용을 입력하세요', 'error'); return; }
+  const topK = parseInt(document.getElementById('rankTopK').value) || 20;
+  const el = document.getElementById('rankResults');
+  el.innerHTML = '<p style="color:var(--muted)">순위 매기는 중…</p>';
+  try {
+    const data = await apiFetch('/api/rank', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ job_description: jd, top_k: topK })
+    });
+    el.innerHTML = `
+      <p style="margin-bottom:14px;font-size:.85rem;color:var(--muted)">
+        전체 <strong>${data.total_candidates}</strong>명의 이력서 중 상위 ${data.results.length}명
+      </p>
+      ${data.results.map(r => resultCard(r)).join('')}
+    `;
+  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; toast(e.message, 'error'); }
+}
+
+// ── Resume List ────────────────────────────────────────────────────────────────
+async function loadResumeList() {
+  const el = document.getElementById('resumeList');
+  el.innerHTML = '<p style="color:var(--muted)">불러오는 중…</p>';
+  try {
+    const data = await apiFetch('/api/resumes');
+    if (!data.resumes.length) { el.innerHTML = '<div class="empty">저장된 이력서가 없습니다.</div>'; return; }
+    el.innerHTML = `
+      <table class="resume-table">
+        <thead><tr><th>#</th><th>파일명</th><th>미리보기</th><th>글자수</th><th></th></tr></thead>
+        <tbody>
+          ${data.resumes.map((r, i) => `
+            <tr>
+              <td>${i+1}</td>
+              <td><strong>${r.filename}</strong></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.8rem">${r.text_preview}</td>
+              <td>${r.char_count.toLocaleString()}</td>
+              <td><button class="del-btn" onclick="deleteResume('${r.resume_id}', this)">삭제</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; }
+}
+
+async function deleteResume(id, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/resumes/${id}`, { method: 'DELETE' });
+    btn.closest('tr').remove();
+    toast('삭제 완료', 'success');
+    loadStats();
+  } catch(e) { toast(e.message, 'error'); btn.disabled = false; }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function resultCard(r) {
+  const pct = Math.round(r.score * 100);
+  const rankClass = r.rank === 1 ? 'rank-1' : r.rank === 2 ? 'rank-2' : r.rank === 3 ? 'rank-3' : 'rank-n';
+  const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank;
+  return `
+    <div class="result-item">
+      <div class="result-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="rank-badge ${rankClass}">${medal}</span>
+          <strong>${r.filename}</strong>
+        </div>
+        <div class="score-bar-wrap" style="min-width:160px">
+          <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+          <span class="score-val">${(r.score * 100).toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="preview">${r.text_preview || ''}</div>
+    </div>
+  `;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadStats();
+setInterval(loadStats, 30000);
+</script>
+</body>
+</html>
