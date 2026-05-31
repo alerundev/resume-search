@@ -24,17 +24,29 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
+# ── Embedding provider detection ─────────────────────────────────────────────
+# Support both OPENAI_APIKEY (Cloudtype secret name) and OPENAI_API_KEY
+OPENAI_API_KEY = os.getenv("OPENAI_APIKEY") or os.getenv("OPENAI_API_KEY") or ""
+
+if OPENAI_API_KEY:
+    EMBED_PROVIDER = "openai"
+    EMBED_MODEL   = "text-embedding-3-small"
+    VECTOR_DIM    = 1536
+    logger.info("🔑 OpenAI embedding mode: text-embedding-3-small (1536 dims)")
+else:
+    EMBED_PROVIDER = "fastembed"
+    EMBED_MODEL   = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    VECTOR_DIM    = 384
+    logger.info("🤖 fastembed mode: paraphrase-multilingual-MiniLM-L12-v2 (384 dims)")
+
 # ── Config ───────────────────────────────────────────────────────────────────
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
-COLLECTION_NAME = "resumes"
-# multilingual model: paraphrase-multilingual-MiniLM-L12-v2 via fastembed
-EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-VECTOR_DIM = 384
+QDRANT_HOST      = os.getenv("QDRANT_HOST", "localhost")
+QDRANT_PORT      = int(os.getenv("QDRANT_PORT", "6333"))
+QDRANT_API_KEY   = os.getenv("QDRANT_API_KEY", None)
+COLLECTION_NAME  = "resumes"
 
 # ── App ───────────────────────────────────────────────────────────────────────
-app = FastAPI(title="Resume Search & Ranking API", version="1.0.0")
+app = FastAPI(title="Resume Search & Ranking API", version="2.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,43 +55,58 @@ app.add_middleware(
 )
 
 # ── Singletons ───────────────────────────────────────────────────────────────
-_embedder = None
-_embedder_ready = False
-_embedder_lock = threading.Lock()
+_fastembed_model  = None
+_embedder_ready   = False
+_embedder_lock    = threading.Lock()
 _qdrant: Optional[QdrantClient] = None
 
 
-def _load_embedder_bg():
-    """Download and initialize fastembed model in a background thread."""
-    global _embedder, _embedder_ready
-    try:
-        from fastembed import TextEmbedding
-        logger.info("Loading fastembed model (multilingual) …")
-        model = TextEmbedding(model_name=EMBED_MODEL_NAME)
-        # Warm up with a dummy query to force model download
-        _ = list(model.embed(["warm up"]))
-        with _embedder_lock:
-            _embedder = model
-            _embedder_ready = True
-        logger.info("✅ Embedding model ready.")
-    except Exception as e:
-        logger.error(f"Failed to load embedding model: {e}", exc_info=True)
-
-
-def embed_text(text: str) -> List[float]:
-    """Generate embedding vector for given text."""
-    model = _embedder
-    if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="모델 로딩 중입니다. 잠시 후 다시 시도해주세요. (Model loading — please retry shortly.)"
-        )
-    vectors = list(model.embed([text]))
-    v = np.array(vectors[0], dtype=np.float32)
-    v = v / (np.linalg.norm(v) + 1e-10)
+# ── OpenAI embedding ─────────────────────────────────────────────────────────
+def embed_openai(text: str) -> List[float]:
+    from openai import OpenAI
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    resp = client.embeddings.create(
+        model=EMBED_MODEL,
+        input=text[:8000],
+        encoding_format="float",
+    )
+    v = np.array(resp.data[0].embedding, dtype=np.float32)
     return v.tolist()
 
 
+# ── fastembed (background load) ──────────────────────────────────────────────
+def _load_fastembed_bg():
+    global _fastembed_model, _embedder_ready
+    try:
+        from fastembed import TextEmbedding
+        logger.info("Loading fastembed model …")
+        model = TextEmbedding(model_name=EMBED_MODEL)
+        _ = list(model.embed(["warm up"]))
+        with _embedder_lock:
+            _fastembed_model = model
+            _embedder_ready = True
+        logger.info("✅ fastembed model ready.")
+    except Exception as e:
+        logger.error(f"Failed to load fastembed model: {e}", exc_info=True)
+
+
+# ── Unified embed ─────────────────────────────────────────────────────────────
+def embed_text(text: str) -> List[float]:
+    if EMBED_PROVIDER == "openai":
+        return embed_openai(text)
+    else:
+        if not _embedder_ready:
+            raise HTTPException(
+                status_code=503,
+                detail="모델 로딩 중입니다. 잠시 후 다시 시도해주세요.",
+            )
+        vectors = list(_fastembed_model.embed([text]))
+        v = np.array(vectors[0], dtype=np.float32)
+        v = v / (np.linalg.norm(v) + 1e-10)
+        return v.tolist()
+
+
+# ── Qdrant ────────────────────────────────────────────────────────────────────
 def get_qdrant() -> QdrantClient:
     global _qdrant
     if _qdrant is None:
@@ -93,13 +120,27 @@ def get_qdrant() -> QdrantClient:
 
 
 def _ensure_collection(client: QdrantClient):
-    existing = [c.name for c in client.get_collections().collections]
-    if COLLECTION_NAME not in existing:
+    """Create or recreate collection if vector dim doesn't match."""
+    existing = client.get_collections().collections
+    existing_names = [c.name for c in existing]
+
+    if COLLECTION_NAME in existing_names:
+        info = client.get_collection(COLLECTION_NAME)
+        current_dim = info.config.params.vectors.size
+        if current_dim != VECTOR_DIM:
+            logger.warning(
+                f"Collection dim mismatch ({current_dim} vs {VECTOR_DIM}). "
+                "Recreating collection — existing data will be lost."
+            )
+            client.delete_collection(COLLECTION_NAME)
+            existing_names.remove(COLLECTION_NAME)
+
+    if COLLECTION_NAME not in existing_names:
         client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
         )
-        logger.info(f"Created collection '{COLLECTION_NAME}'")
+        logger.info(f"Created collection '{COLLECTION_NAME}' (dim={VECTOR_DIM})")
 
 
 # ── PDF helpers ───────────────────────────────────────────────────────────────
@@ -141,7 +182,13 @@ class RankReq(BaseModel):
 # ── Startup ───────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup_event():
-    threading.Thread(target=_load_embedder_bg, daemon=True).start()
+    if EMBED_PROVIDER == "fastembed":
+        threading.Thread(target=_load_fastembed_bg, daemon=True).start()
+    else:
+        # OpenAI: mark ready immediately (no local model to load)
+        global _embedder_ready
+        _embedder_ready = True
+        logger.info("✅ OpenAI embedding ready (API calls on demand).")
     try:
         get_qdrant()
     except Exception as e:
@@ -158,12 +205,18 @@ async def root():
 @app.get("/health")
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "model_ready": _embedder_ready, "qdrant_host": QDRANT_HOST}
+    return {
+        "status": "ok",
+        "model_ready": _embedder_ready,
+        "embed_provider": EMBED_PROVIDER,
+        "embed_model": EMBED_MODEL,
+        "vector_dim": VECTOR_DIM,
+        "qdrant_host": QDRANT_HOST,
+    }
 
 
 @app.post("/api/upload")
 async def upload_resumes(files: List[UploadFile] = File(...)):
-    """Upload up to 100 PDF resumes and store embeddings in Qdrant."""
     if len(files) > 100:
         raise HTTPException(status_code=400, detail="최대 100개의 PDF를 업로드할 수 있습니다.")
     if not _embedder_ready:
@@ -181,10 +234,10 @@ async def upload_resumes(files: List[UploadFile] = File(...)):
             file_bytes = await f.read()
             text = extract_text_from_pdf(file_bytes)
             if not text:
-                results.append({"filename": f.filename, "status": "error", "reason": "텍스트 추출 실패"})
+                results.append({"filename": f.filename, "status": "error", "reason": "텍스트 추출 실패 (스캔 PDF는 지원 안 됩니다)"})
                 continue
 
-            vector = embed_text(text[:2000])
+            vector = embed_text(text[:8000])
             resume_id = str(uuid.uuid4())
             payload = {
                 "resume_id": resume_id,
@@ -195,6 +248,8 @@ async def upload_resumes(files: List[UploadFile] = File(...)):
             }
             points.append(PointStruct(id=resume_id, vector=vector, payload=payload))
             results.append({"filename": f.filename, "status": "success", "resume_id": resume_id})
+        except HTTPException:
+            raise
         except Exception as e:
             logger.exception(f"Error processing {f.filename}")
             results.append({"filename": f.filename, "status": "error", "reason": str(e)})
@@ -211,17 +266,15 @@ async def list_resumes(limit: int = 100, offset: int = 0):
     client = get_qdrant()
     records, _ = client.scroll(
         collection_name=COLLECTION_NAME,
-        limit=limit,
-        offset=offset,
-        with_payload=True,
-        with_vectors=False,
+        limit=limit, offset=offset,
+        with_payload=True, with_vectors=False,
     )
     return {
         "total": client.count(COLLECTION_NAME).count,
         "resumes": [
             {
                 "resume_id": r.payload.get("resume_id"),
-                "filename": r.payload.get("filename"),
+                "filename":  r.payload.get("filename"),
                 "text_preview": r.payload.get("text_preview", ""),
                 "char_count": r.payload.get("char_count", 0),
             }
@@ -261,7 +314,7 @@ async def search_resumes(req: SearchReq):
                 "rank": i + 1,
                 "score": round(float(hit.score), 4),
                 "resume_id": hit.payload.get("resume_id"),
-                "filename": hit.payload.get("filename"),
+                "filename":  hit.payload.get("filename"),
                 "text_preview": hit.payload.get("text_preview", ""),
             }
             for i, hit in enumerate(hits)
@@ -276,24 +329,22 @@ async def rank_for_job(req: RankReq):
     if total == 0:
         raise HTTPException(status_code=404, detail="저장된 이력서가 없습니다.")
 
-    job_vec = embed_text(req.job_description)
-    job_arr = np.array(job_vec)
-
+    job_vec  = embed_text(req.job_description)
+    job_arr  = np.array(job_vec)
     records, _ = client.scroll(
         collection_name=COLLECTION_NAME,
         limit=min(total, 1000),
-        with_payload=True,
-        with_vectors=True,
+        with_payload=True, with_vectors=True,
     )
 
     scored = []
     for r in records:
-        rv = np.array(r.vector)
+        rv    = np.array(r.vector)
         score = float(np.dot(job_arr, rv))
         scored.append({
             "score": round(score, 4),
             "resume_id": r.payload.get("resume_id"),
-            "filename": r.payload.get("filename"),
+            "filename":  r.payload.get("filename"),
             "text_preview": r.payload.get("text_preview", ""),
         })
 
@@ -302,10 +353,21 @@ async def rank_for_job(req: RankReq):
     for i, item in enumerate(top):
         item["rank"] = i + 1
 
-    return {"job_description": req.job_description[:300], "total_candidates": total, "results": top}
+    return {
+        "job_description":  req.job_description[:300],
+        "total_candidates": total,
+        "embed_provider":   EMBED_PROVIDER,
+        "results": top,
+    }
 
 
 @app.get("/api/stats")
 async def stats():
     count = get_qdrant().count(COLLECTION_NAME).count
-    return {"total_resumes": count, "collection": COLLECTION_NAME}
+    return {
+        "total_resumes":  count,
+        "collection":     COLLECTION_NAME,
+        "embed_provider": EMBED_PROVIDER,
+        "embed_model":    EMBED_MODEL,
+        "vector_dim":     VECTOR_DIM,
+    }
