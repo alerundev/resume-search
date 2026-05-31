@@ -11,6 +11,7 @@
       --secondary: #0ea5e9;
       --success: #10b981;
       --danger: #ef4444;
+      --warning: #f59e0b;
       --bg: #f8fafc;
       --card: #ffffff;
       --border: #e2e8f0;
@@ -18,313 +19,128 @@
       --muted: #64748b;
       --radius: 12px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
     header {
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      color: #fff;
-      padding: 24px 32px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      color: #fff; padding: 20px 32px; display: flex; align-items: center; gap: 16px;
       box-shadow: 0 4px 20px rgba(79,70,229,.25);
     }
-    header h1 { font-size: 1.6rem; font-weight: 700; }
-    header p  { font-size: .9rem; opacity: .85; margin-top: 2px; }
+    header h1 { font-size: 1.5rem; font-weight: 700; }
+    header p  { font-size: .85rem; opacity: .85; margin-top: 2px; }
     .badge {
-      background: rgba(255,255,255,.2);
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: .78rem;
-      font-weight: 600;
-      letter-spacing: .5px;
+      background: rgba(255,255,255,.2); border-radius: 20px; padding: 4px 12px;
+      font-size: .75rem; font-weight: 600; letter-spacing: .5px; margin-left: auto;
     }
 
-    main {
-      max-width: 1100px;
-      margin: 32px auto;
-      padding: 0 16px;
-      display: grid;
-      gap: 24px;
+    /* Model status banner */
+    #modelBanner {
+      background: #fffbeb; border-bottom: 1px solid #fde68a;
+      padding: 10px 32px; font-size: .85rem; color: #92400e;
+      display: flex; align-items: center; gap: 8px;
     }
+    #modelBanner.ready { background: #f0fdf4; border-color: #bbf7d0; color: #166534; display: none; }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06);
-    }
-    .card h2 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    main { max-width: 1100px; margin: 28px auto; padding: 0 16px; display: grid; gap: 20px; }
 
-    /* Upload area */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    /* Drop zone */
     .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
+      border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+      display: block;
     }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--primary);
-      background: #f5f3ff;
-    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: #f5f3ff; }
     .drop-zone input[type="file"] { display: none; }
-    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
-    .drop-zone p { color: var(--muted); font-size: .9rem; }
+    .drop-zone .icon { font-size: 2.2rem; margin-bottom: 6px; }
+    .drop-zone p { color: var(--muted); font-size: .875rem; }
     .drop-zone .select-btn {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 8px 20px;
-      background: var(--primary);
-      color: #fff;
-      border-radius: 8px;
-      font-size: .875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .2s;
+      display: inline-block; margin-top: 10px; padding: 8px 20px;
+      background: var(--primary); color: #fff; border-radius: 8px;
+      font-size: .85rem; font-weight: 600; cursor: pointer;
     }
     .drop-zone .select-btn:hover { background: var(--primary-hover); }
 
-    .file-list { margin-top: 12px; max-height: 160px; overflow-y: auto; }
-    .file-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 10px;
-      background: #f8fafc;
-      border-radius: 8px;
-      margin-bottom: 4px;
-      font-size: .82rem;
-    }
+    .file-list { margin-top: 10px; max-height: 150px; overflow-y: auto; }
+    .file-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; background: #f8fafc; border-radius: 6px; margin-bottom: 3px; font-size: .82rem; }
     .file-item .fname { color: var(--text); font-weight: 500; }
     .file-item .fsize { color: var(--muted); }
 
     /* Buttons */
-    button {
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: .875rem;
-      font-weight: 600;
-      transition: background .2s, transform .1s;
-    }
+    button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 20px; font-size: .875rem; font-weight: 600; transition: background .2s, transform .1s; }
     button:active { transform: scale(.98); }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-danger  { background: var(--danger); color: #fff; }
-    .btn-danger:hover  { background: #dc2626; }
+    .btn-danger:hover { background: #dc2626; }
     .btn-success { background: var(--success); color: #fff; }
     .btn-success:hover { background: #059669; }
-    .btn-outline {
-      background: transparent;
-      color: var(--primary);
-      border: 1.5px solid var(--primary);
-    }
+    .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
     .btn-outline:hover { background: #f5f3ff; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
 
-    button:disabled { opacity: .5; cursor: not-allowed; }
-
-    /* Stats bar */
-    .stats-bar {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      padding: 16px 20px;
-      background: linear-gradient(90deg, #f5f3ff 0%, #eff6ff 100%);
-      border-radius: var(--radius);
-      border: 1px solid #ddd6fe;
-    }
+    /* Stats */
+    .stats-bar { display: flex; gap: 20px; flex-wrap: wrap; padding: 14px 20px; background: linear-gradient(90deg, #f5f3ff 0%, #eff6ff 100%); border-radius: var(--radius); border: 1px solid #ddd6fe; }
     .stat { text-align: center; }
-    .stat .num { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
-    .stat .lbl { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .stat .num { font-size: 1.7rem; font-weight: 700; color: var(--primary); }
+    .stat .lbl { font-size: .72rem; color: var(--muted); margin-top: 2px; }
 
     /* Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
-    .tab {
-      padding: 8px 18px;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--muted);
-      font-weight: 600;
-      font-size: .875rem;
-      border: 1.5px solid var(--border);
-    }
-    .tab.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
+    .tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+    .tab { padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 600; font-size: .85rem; border: 1.5px solid var(--border); }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
     /* Inputs */
-    textarea, input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: .9rem;
-      font-family: inherit;
-      transition: border-color .2s;
-      outline: none;
-    }
+    textarea, input[type="text"], input[type="number"] { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .875rem; font-family: inherit; transition: border-color .2s; outline: none; }
     textarea:focus, input:focus { border-color: var(--primary); }
-    textarea { resize: vertical; min-height: 100px; }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 10px;
-      align-items: start;
-    }
-    .form-row input[type="number"] { width: 80px; }
+    textarea { resize: vertical; min-height: 90px; }
+    .form-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: start; }
 
     /* Results */
-    .result-item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 10px;
-      transition: box-shadow .2s;
-    }
+    .result-item { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 8px; transition: box-shadow .2s; }
     .result-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
-    .result-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .rank-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      font-size: .78rem;
-      font-weight: 700;
-      margin-right: 8px;
-      flex-shrink: 0;
-    }
+    .result-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: .75rem; font-weight: 700; margin-right: 6px; flex-shrink: 0; }
     .rank-1 { background: #fef3c7; color: #92400e; }
     .rank-2 { background: #f1f5f9; color: #475569; }
-    .rank-3 { background: #fef3c7; color: #92400e; opacity: .75; }
+    .rank-3 { background: #fef9ec; color: #a16207; }
     .rank-n { background: #f1f5f9; color: #64748b; }
-
     .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .score-bar {
-      height: 6px;
-      border-radius: 3px;
-      background: #e2e8f0;
-      flex: 1;
-      min-width: 60px;
-    }
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-    }
-    .score-val { font-size: .8rem; font-weight: 700; color: var(--primary); min-width: 40px; text-align: right; }
+    .score-bar { height: 6px; border-radius: 3px; background: #e2e8f0; flex: 1; min-width: 60px; }
+    .score-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+    .score-val { font-size: .8rem; font-weight: 700; color: var(--primary); min-width: 42px; text-align: right; }
+    .preview { font-size: .8rem; color: var(--muted); line-height: 1.5; margin-top: 5px; white-space: pre-wrap; word-break: break-word; }
 
-    .preview {
-      font-size: .82rem;
-      color: var(--muted);
-      line-height: 1.5;
-      margin-top: 6px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    /* Resume list */
+    /* Resume table */
     .resume-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    .resume-table th {
-      text-align: left;
-      padding: 8px 12px;
-      background: #f8fafc;
-      font-weight: 600;
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-    }
-    .resume-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
+    .resume-table th { text-align: left; padding: 8px 12px; background: #f8fafc; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .resume-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
     .resume-table tr:hover td { background: #f8fafc; }
-    .del-btn {
-      padding: 4px 10px;
-      font-size: .75rem;
-      background: #fee2e2;
-      color: var(--danger);
-      border-radius: 6px;
-    }
+    .del-btn { padding: 4px 10px; font-size: .75rem; background: #fee2e2; color: var(--danger); border-radius: 6px; }
     .del-btn:hover { background: var(--danger); color: #fff; }
 
     /* Progress */
-    .progress-wrap { margin-top: 12px; display: none; }
-    .progress {
-      height: 8px;
-      border-radius: 4px;
-      background: #e2e8f0;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      border-radius: 4px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      width: 0%;
-      transition: width .3s;
-    }
-    .progress-label { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+    .progress-wrap { margin-top: 10px; }
+    .progress { height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width .3s; }
+    .progress-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+    /* Error box */
+    .error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 14px; font-size: .85rem; color: #b91c1c; margin-top: 10px; display: none; }
+    .error-box.show { display: block; }
 
     /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1e293b;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: .875rem;
-      box-shadow: 0 4px 16px rgba(0,0,0,.2);
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity .3s, transform .3s;
-      z-index: 9999;
-      max-width: 320px;
-    }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .875rem; box-shadow: 0 4px 16px rgba(0,0,0,.2); opacity: 0; transform: translateY(10px); transition: opacity .3s, transform .3s; z-index: 9999; max-width: 340px; }
     #toast.show { opacity: 1; transform: translateY(0); }
     #toast.success { background: var(--success); }
     #toast.error   { background: var(--danger); }
+    #toast.warning { background: var(--warning); color: #1c1917; }
 
-    .empty { text-align: center; padding: 32px; color: var(--muted); }
-    .spinner {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,.4);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .6s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
+    .empty { text-align: center; padding: 28px; color: var(--muted); }
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 5px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden { display: none !important; }
   </style>
@@ -339,12 +155,22 @@
   <span class="badge">Vector DB Powered</span>
 </header>
 
+<!-- Model loading banner -->
+<div id="modelBanner">
+  <span>⏳</span>
+  <span id="modelBannerText">임베딩 모델 초기화 중입니다… 잠시만 기다려 주세요 (보통 30초 내)</span>
+</div>
+
 <main>
   <!-- Stats -->
-  <div class="stats-bar" id="statsBar">
+  <div class="stats-bar">
     <div class="stat">
       <div class="num" id="statTotal">-</div>
       <div class="lbl">저장된 이력서</div>
+    </div>
+    <div class="stat">
+      <div class="num" id="statModelReady" style="font-size:1.1rem">…</div>
+      <div class="lbl">모델 상태</div>
     </div>
   </div>
 
@@ -358,14 +184,16 @@
       <span class="select-btn">파일 선택</span>
     </label>
     <div class="file-list" id="fileList"></div>
-    <div class="progress-wrap" id="progressWrap">
+    <div class="progress-wrap hidden" id="progressWrap">
       <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
       <div class="progress-label" id="progressLabel">업로드 중…</div>
     </div>
-    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+    <div class="error-box" id="uploadError"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn-primary" id="uploadBtn" onclick="uploadFiles()" disabled>
         ⬆️ 업로드 시작
       </button>
+      <span id="uploadHint" style="font-size:.8rem;color:var(--muted)">파일을 먼저 선택해 주세요</span>
       <button class="btn-danger btn-outline" onclick="deleteAll()" style="margin-left:auto">
         🗑️ 전체 삭제
       </button>
@@ -382,39 +210,39 @@
 
     <!-- Search Panel -->
     <div id="panel-search">
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">
-        원하는 인재를 자연어로 설명하세요. 예: "파이썬 5년 이상 경험한 백엔드 개발자"
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:10px">
+        원하는 인재를 자연어로 설명하세요. 예: "파이썬 5년 이상 백엔드 개발자"
       </p>
       <div class="form-row">
         <textarea id="searchQuery" rows="2" placeholder="예) React와 TypeScript를 잘 다루는 프론트엔드 개발자"></textarea>
         <div>
-          <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:4px">결과 수</label>
-          <input type="number" id="searchTopK" value="10" min="1" max="100" style="width:70px" />
+          <label style="font-size:.73rem;color:var(--muted);display:block;margin-bottom:3px">결과 수</label>
+          <input type="number" id="searchTopK" value="10" min="1" max="100" style="width:68px" />
         </div>
         <div style="padding-top:18px">
           <button class="btn-primary" onclick="doSearch()">검색</button>
         </div>
       </div>
-      <div id="searchResults" style="margin-top:20px"></div>
+      <div id="searchResults" style="margin-top:18px"></div>
     </div>
 
     <!-- Rank Panel -->
     <div id="panel-rank" class="hidden">
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:10px">
         채용공고 내용을 입력하면 이력서를 유사도 순으로 순위 매깁니다.
       </p>
-      <textarea id="jobDesc" rows="6" placeholder="예) 당사는 3년 이상 경력의 Python 백엔드 개발자를 모집합니다. FastAPI, PostgreSQL, Docker 경험 필요. AWS 클라우드 환경 운영 경험 우대…"></textarea>
+      <textarea id="jobDesc" rows="6" placeholder="예) 3년 이상 Python 백엔드 개발 경험자 모집. FastAPI, PostgreSQL, Docker 필수. AWS 경험 우대…"></textarea>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
         <label style="font-size:.85rem">상위 결과 수:</label>
-        <input type="number" id="rankTopK" value="20" min="1" max="100" style="width:70px" />
+        <input type="number" id="rankTopK" value="20" min="1" max="100" style="width:68px" />
         <button class="btn-success" onclick="doRank()">🏆 순위 매기기</button>
       </div>
-      <div id="rankResults" style="margin-top:20px"></div>
+      <div id="rankResults" style="margin-top:18px"></div>
     </div>
 
     <!-- List Panel -->
     <div id="panel-list" class="hidden">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
         <button class="btn-outline" onclick="loadResumeList()">🔄 새로고침</button>
       </div>
       <div id="resumeList"></div>
@@ -425,23 +253,64 @@
 <div id="toast"></div>
 
 <script>
-// ── Utilities ────────────────────────────────────────────────────────────────
 const BASE = '';
+let modelReady = false;
 
-function toast(msg, type = '') {
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = '', duration = 4000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = `show ${type}`;
-  setTimeout(() => { el.className = ''; }, 3000);
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, duration);
 }
 
+// ── API fetch ─────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(BASE + path, opts);
+  let res;
+  try {
+    res = await fetch(BASE + path, opts);
+  } catch (networkErr) {
+    throw new Error('네트워크 오류: 서버에 연결할 수 없습니다.');
+  }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'API 오류');
+    let detail = `서버 오류 (HTTP ${res.status})`;
+    try {
+      const err = await res.json();
+      detail = err.detail || detail;
+    } catch (_) {}
+    throw new Error(detail);
   }
   return res.json();
+}
+
+// ── Health & Model status ─────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const data = await apiFetch('/api/health');
+    const banner = document.getElementById('modelBanner');
+    const statEl  = document.getElementById('statModelReady');
+
+    if (data.model_ready) {
+      modelReady = true;
+      banner.style.display = 'none';
+      statEl.textContent = '✅ 준비됨';
+      statEl.style.color = 'var(--success)';
+      // Enable upload if files selected
+      if (selectedFiles.length > 0) uploadBtn.disabled = false;
+    } else {
+      modelReady = false;
+      banner.style.display = 'flex';
+      statEl.textContent = '⏳ 로딩 중';
+      statEl.style.color = 'var(--warning)';
+      uploadBtn.disabled = true;
+      document.getElementById('uploadHint').textContent = '⏳ 모델 초기화 중 – 잠시 후 다시 시도해 주세요';
+      // Poll again
+      setTimeout(checkHealth, 5000);
+    }
+  } catch (_) {
+    setTimeout(checkHealth, 8000);
+  }
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -464,11 +333,11 @@ function switchTab(name, btn) {
 
 // ── File Upload ───────────────────────────────────────────────────────────────
 let selectedFiles = [];
-
-const dropZone = document.getElementById('dropZone');
+const dropZone  = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const fileList  = document.getElementById('fileList');
 const uploadBtn = document.getElementById('uploadBtn');
+const uploadHint = document.getElementById('uploadHint');
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -485,7 +354,15 @@ function handleFiles(files) {
   if (pdfs.length > 100) { toast('최대 100개까지 선택 가능합니다.', 'error'); return; }
   selectedFiles = pdfs;
   renderFileList();
-  uploadBtn.disabled = false;
+  document.getElementById('uploadError').classList.remove('show');
+
+  if (!modelReady) {
+    uploadBtn.disabled = true;
+    uploadHint.textContent = '⏳ 모델 초기화 중 – 잠시 후 자동으로 활성화됩니다';
+  } else {
+    uploadBtn.disabled = false;
+    uploadHint.textContent = `${pdfs.length}개 파일 선택됨 – 업로드 버튼을 클릭하세요`;
+  }
 }
 
 function renderFileList() {
@@ -498,42 +375,71 @@ function renderFileList() {
 }
 
 async function uploadFiles() {
-  if (!selectedFiles.length) return;
+  if (!selectedFiles.length) { toast('파일을 먼저 선택해 주세요.', 'warning'); return; }
+  if (!modelReady) { toast('모델 초기화 중입니다. 잠시 후 다시 시도해 주세요.', 'warning'); return; }
+
   uploadBtn.disabled = true;
   uploadBtn.innerHTML = '<span class="spinner"></span>업로드 중…';
+  uploadHint.textContent = '';
+  document.getElementById('uploadError').classList.remove('show');
 
   const pw = document.getElementById('progressWrap');
   const pf = document.getElementById('progressFill');
   const pl = document.getElementById('progressLabel');
-  pw.style.display = 'block';
+  pw.classList.remove('hidden');
 
   const BATCH = 10;
   let uploaded = 0, errors = 0;
+  const errorMsgs = [];
 
   for (let i = 0; i < selectedFiles.length; i += BATCH) {
     const batch = selectedFiles.slice(i, i + BATCH);
     const fd = new FormData();
     batch.forEach(f => fd.append('files', f));
+
     try {
       const res = await apiFetch('/api/upload', { method: 'POST', body: fd });
       uploaded += res.uploaded;
-      errors   += res.results.filter(r => r.status === 'error').length;
+      const batchErrors = res.results.filter(r => r.status === 'error' || r.status === 'skipped');
+      errors += batchErrors.length;
+      batchErrors.forEach(r => errorMsgs.push(`${r.filename}: ${r.reason || r.status}`));
     } catch (e) {
       errors += batch.length;
+      errorMsgs.push(`배치 오류: ${e.message}`);
+      // Stop on critical errors (model not ready, etc.)
+      if (e.message.includes('모델 로딩') || e.message.includes('503')) {
+        break;
+      }
     }
+
     const pct = Math.round(((i + batch.length) / selectedFiles.length) * 100);
     pf.style.width = pct + '%';
     pl.textContent = `${Math.min(i + batch.length, selectedFiles.length)} / ${selectedFiles.length} 처리 중…`;
   }
 
-  pw.style.display = 'none';
+  pw.classList.add('hidden');
+  pf.style.width = '0%';
   uploadBtn.innerHTML = '⬆️ 업로드 시작';
-  uploadBtn.disabled = false;
-  selectedFiles = [];
-  fileList.innerHTML = '';
 
-  toast(`✅ ${uploaded}개 업로드 완료${errors ? ` (${errors}개 실패)` : ''}`, 'success');
-  loadStats();
+  if (uploaded > 0) {
+    uploadBtn.disabled = false;
+    selectedFiles = [];
+    fileList.innerHTML = '';
+    uploadHint.textContent = '파일을 먼저 선택해 주세요';
+    toast(`✅ ${uploaded}개 업로드 완료${errors ? ` (${errors}개 실패)` : ''}`, 'success');
+    loadStats();
+  }
+
+  if (errorMsgs.length > 0) {
+    const errEl = document.getElementById('uploadError');
+    errEl.innerHTML = `<strong>⚠️ 오류 발생:</strong><br>` + errorMsgs.map(m => `• ${m}`).join('<br>');
+    errEl.classList.add('show');
+    if (uploaded === 0) {
+      uploadBtn.disabled = false;
+      uploadHint.textContent = `${selectedFiles.length}개 파일 선택됨`;
+      toast(`❌ 업로드 실패: ${errorMsgs[0]}`, 'error', 6000);
+    }
+  }
 }
 
 // ── Delete All ────────────────────────────────────────────────────────────────
@@ -544,57 +450,68 @@ async function deleteAll() {
     toast('🗑️ 전체 삭제 완료', 'success');
     loadStats();
     document.getElementById('resumeList').innerHTML = '';
-  } catch(e) { toast(e.message, 'error'); }
+  } catch(e) { toast(`오류: ${e.message}`, 'error'); }
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
 async function doSearch() {
   const q = document.getElementById('searchQuery').value.trim();
-  if (!q) { toast('검색어를 입력하세요', 'error'); return; }
+  if (!q) { toast('검색어를 입력하세요', 'warning'); return; }
+  if (!modelReady) { toast('모델 초기화 중입니다. 잠시 후 다시 시도해 주세요.', 'warning'); return; }
+
   const topK = parseInt(document.getElementById('searchTopK').value) || 10;
   const el = document.getElementById('searchResults');
-  el.innerHTML = '<p style="color:var(--muted)">검색 중…</p>';
+  el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">🔍 검색 중…</p>';
   try {
     const data = await apiFetch('/api/search', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ query: q, top_k: topK })
     });
     el.innerHTML = data.results.length
       ? data.results.map(r => resultCard(r)).join('')
-      : '<div class="empty">검색 결과가 없습니다.</div>';
-  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; toast(e.message, 'error'); }
+      : '<div class="empty">검색 결과가 없습니다. 이력서를 먼저 업로드해 주세요.</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+    toast(e.message, 'error');
+  }
 }
 
 // ── Rank ──────────────────────────────────────────────────────────────────────
 async function doRank() {
   const jd = document.getElementById('jobDesc').value.trim();
-  if (!jd) { toast('채용공고 내용을 입력하세요', 'error'); return; }
+  if (!jd) { toast('채용공고 내용을 입력하세요', 'warning'); return; }
+  if (!modelReady) { toast('모델 초기화 중입니다. 잠시 후 다시 시도해 주세요.', 'warning'); return; }
+
   const topK = parseInt(document.getElementById('rankTopK').value) || 20;
   const el = document.getElementById('rankResults');
-  el.innerHTML = '<p style="color:var(--muted)">순위 매기는 중…</p>';
+  el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">⏳ 순위 계산 중…</p>';
   try {
     const data = await apiFetch('/api/rank', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ job_description: jd, top_k: topK })
     });
     el.innerHTML = `
-      <p style="margin-bottom:14px;font-size:.85rem;color:var(--muted)">
-        전체 <strong>${data.total_candidates}</strong>명의 이력서 중 상위 ${data.results.length}명
+      <p style="margin-bottom:12px;font-size:.83rem;color:var(--muted)">
+        전체 <strong>${data.total_candidates}</strong>명 중 상위 ${data.results.length}명
       </p>
       ${data.results.map(r => resultCard(r)).join('')}
     `;
-  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; toast(e.message, 'error'); }
+  } catch(e) {
+    el.innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+    toast(e.message, 'error');
+  }
 }
 
 // ── Resume List ────────────────────────────────────────────────────────────────
 async function loadResumeList() {
   const el = document.getElementById('resumeList');
-  el.innerHTML = '<p style="color:var(--muted)">불러오는 중…</p>';
+  el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">불러오는 중…</p>';
   try {
     const data = await apiFetch('/api/resumes');
-    if (!data.resumes.length) { el.innerHTML = '<div class="empty">저장된 이력서가 없습니다.</div>'; return; }
+    if (!data.resumes.length) {
+      el.innerHTML = '<div class="empty">저장된 이력서가 없습니다.</div>';
+      return;
+    }
     el.innerHTML = `
       <table class="resume-table">
         <thead><tr><th>#</th><th>파일명</th><th>미리보기</th><th>글자수</th><th></th></tr></thead>
@@ -602,16 +519,15 @@ async function loadResumeList() {
           ${data.resumes.map((r, i) => `
             <tr>
               <td>${i+1}</td>
-              <td><strong>${r.filename}</strong></td>
-              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.8rem">${r.text_preview}</td>
-              <td>${r.char_count.toLocaleString()}</td>
+              <td><strong>${escHtml(r.filename)}</strong></td>
+              <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.78rem">${escHtml(r.text_preview)}</td>
+              <td>${(r.char_count||0).toLocaleString()}</td>
               <td><button class="del-btn" onclick="deleteResume('${r.resume_id}', this)">삭제</button></td>
             </tr>
           `).join('')}
         </tbody>
-      </table>
-    `;
-  } catch(e) { el.innerHTML = `<div class="empty">${e.message}</div>`; }
+      </table>`;
+  } catch(e) { el.innerHTML = `<div class="empty">오류: ${e.message}</div>`; }
 }
 
 async function deleteResume(id, btn) {
@@ -625,6 +541,10 @@ async function deleteResume(id, btn) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function resultCard(r) {
   const pct = Math.round(r.score * 100);
   const rankClass = r.rank === 1 ? 'rank-1' : r.rank === 2 ? 'rank-2' : r.rank === 3 ? 'rank-3' : 'rank-n';
@@ -632,21 +552,21 @@ function resultCard(r) {
   return `
     <div class="result-item">
       <div class="result-header">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:6px">
           <span class="rank-badge ${rankClass}">${medal}</span>
-          <strong>${r.filename}</strong>
+          <strong>${escHtml(r.filename)}</strong>
         </div>
-        <div class="score-bar-wrap" style="min-width:160px">
+        <div class="score-bar-wrap" style="min-width:150px">
           <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>
-          <span class="score-val">${(r.score * 100).toFixed(1)}%</span>
+          <span class="score-val">${pct}%</span>
         </div>
       </div>
-      <div class="preview">${r.text_preview || ''}</div>
-    </div>
-  `;
+      <div class="preview">${escHtml(r.text_preview || '')}</div>
+    </div>`;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+checkHealth();
 loadStats();
 setInterval(loadStats, 30000);
 </script>
