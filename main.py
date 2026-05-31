@@ -6,6 +6,10 @@ import threading
 from pathlib import Path
 from typing import Optional, List
 
+# Ensure writable cache dirs before any HF imports
+os.environ.setdefault("HF_HOME", "/app/.cache/huggingface")
+os.environ.setdefault("FASTEMBED_CACHE_PATH", "/app/.cache/fastembed")
+
 import pdfplumber
 from pypdf import PdfReader
 from fastapi import FastAPI, File, UploadFile, HTTPException
