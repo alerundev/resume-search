@@ -3,6 +3,7 @@ import io
 import uuid
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -10,14 +11,11 @@ import pdfplumber
 from pypdf import PdfReader
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance, VectorParams, PointStruct,
-    Filter, FieldCondition, MatchValue, SearchRequest
 )
 import numpy as np
 
@@ -43,16 +41,34 @@ app.add_middleware(
 )
 
 # ── Lazy singletons ──────────────────────────────────────────────────────────
-_embedder: Optional[SentenceTransformer] = None
+_embedder = None
+_embedder_ready = False
+_embedder_lock = threading.Lock()
 _qdrant: Optional[QdrantClient] = None
 
 
-def get_embedder() -> SentenceTransformer:
-    global _embedder
-    if _embedder is None:
-        logger.info("Loading embedding model …")
-        _embedder = SentenceTransformer(EMBED_MODEL_NAME)
-        logger.info("Embedding model loaded.")
+def _load_embedder_bg():
+    """Load embedding model in background thread."""
+    global _embedder, _embedder_ready
+    try:
+        from sentence_transformers import SentenceTransformer
+        logger.info("Loading embedding model in background …")
+        model = SentenceTransformer(EMBED_MODEL_NAME)
+        with _embedder_lock:
+            _embedder = model
+            _embedder_ready = True
+        logger.info("✅ Embedding model loaded.")
+    except Exception as e:
+        logger.error(f"Failed to load embedding model: {e}")
+
+
+def get_embedder():
+    global _embedder, _embedder_ready
+    if not _embedder_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="모델 로딩 중입니다. 잠시 후 다시 시도해주세요. (Embedding model is loading, please retry in a moment.)"
+        )
     return _embedder
 
 
@@ -127,12 +143,13 @@ class DeleteRequest(BaseModel):
 # ── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup_event():
-    """Pre-load model and ensure collection exists."""
+    """Start background model loading and ensure collection exists."""
+    # Load model in background so health check passes immediately
+    threading.Thread(target=_load_embedder_bg, daemon=True).start()
     try:
-        get_embedder()
         get_qdrant()
     except Exception as e:
-        logger.warning(f"Startup init warning (will retry on first request): {e}")
+        logger.warning(f"Qdrant init warning (will retry on first request): {e}")
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -145,7 +162,11 @@ async def root():
 @app.get("/health")
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "model_ready": _embedder_ready,
+        "qdrant_host": QDRANT_HOST,
+    }
 
 
 @app.post("/api/upload")
